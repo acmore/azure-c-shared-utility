@@ -2,8 +2,6 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 #include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
 #include "azure_c_shared_utility/gballoc.h"
 #include "azure_c_shared_utility/sastoken.h"
 #include "azure_c_shared_utility/urlencode.h"
@@ -40,8 +38,8 @@ bool SASToken_Validate(STRING_HANDLE sasToken)
     /*Codes_SRS_SASTOKEN_25_025: [**SASToken_Validate shall get the SASToken value by invoking STRING_c_str on the handle.**]***/
     const char* sasTokenArray = STRING_c_str(sasToken);
 
-    /* Codes_SRS_SASTOKEN_25_024: [**If handle is NULL then SASToken_Validate shall return false.**] */
-    /* Codes_SRS_SASTOKEN_25_026: [**If STRING_c_str on handle return NULL then SASToken_Validate shall return false.**] */
+    /***Codes_SRS_SASTOKEN_25_024: [**If handle is NULL then SASToken_Validate shall return false.**] ***/
+    /*Codes_SRS_SASTOKEN_25_026: [**If STRING_c_str on handle return NULL then SASToken_Validate shall return false.**]***/
     if (sasToken == NULL || sasTokenArray == NULL)
     {
         result = false;
@@ -51,8 +49,9 @@ bool SASToken_Validate(STRING_HANDLE sasToken)
         int seStart = -1, seStop = -1;
         int srStart = -1, srStop = -1;
         int sigStart = -1, sigStop = -1;
-        int tokenLength = (int)STRING_length(sasToken);
-        int i;
+        int sknStart = -1, sknStop = -1;
+        int tokenLength = (int) STRING_length(sasToken);
+        int i ;
         for (i = 0; i < tokenLength; i++)
         {
             if (sasTokenArray[i] == 's' && sasTokenArray[i + 1] == 'e' && sasTokenArray[i + 2] == '=') // Look for se=
@@ -60,69 +59,106 @@ bool SASToken_Validate(STRING_HANDLE sasToken)
                 seStart = i + 3;
                 if (srStart > 0 && srStop < 0)
                 {
-                    if (sasTokenArray[i - 1] != '&' && sasTokenArray[i - 1] == ' ') // look for either & or space
+                    if (sasTokenArray[i - 1] == '&' || sasTokenArray[i - 1] == ' ') // look for either & or space
                         srStop = i - 1;
-                    else if (sasTokenArray[i - 1] == '&')
-                        srStop = i - 2;
                     else
                         seStart = -1; // as the format is not either "&se=" or " se="
                 }
                 else if (sigStart > 0 && sigStop < 0)
                 {
-                    if (sasTokenArray[i - 1] != '&' && sasTokenArray[i - 1] == ' ')
+                    if (sasTokenArray[i - 1] == '&' || sasTokenArray[i - 1] == ' ')
                         sigStop = i - 1;
-                    else if (sasTokenArray[i - 1] == '&')
-                        sigStop = i - 2;
                     else
                         seStart = -1;
                 }
+                else if (sknStart > 0 && sknStop < 0)
+                {
+                    if (sasTokenArray[i - 1] == '&' || sasTokenArray[i - 1] == ' ')
+                        sknStop = i - 1;
+                    else
+                        seStart = -1;
+                }
+                continue;
             }
-            else if (sasTokenArray[i] == 's' && sasTokenArray[i + 1] == 'r' && sasTokenArray[i + 2] == '=') // Look for sr=
+            if (sasTokenArray[i] == 's' && sasTokenArray[i + 1] == 'r' && sasTokenArray[i + 2] == '=') // Look for sr=
             {
                 srStart = i + 3;
                 if (seStart > 0 && seStop < 0)
                 {
-                    if (sasTokenArray[i - 1] != '&' && sasTokenArray[i - 1] == ' ')
+                    if (sasTokenArray[i - 1] == '&' || sasTokenArray[i - 1] == ' ')
                         seStop = i - 1;
-                    else if (sasTokenArray[i - 1] == '&')
-                        seStop = i - 2;
                     else
                         srStart = -1;
                 }
                 else if (sigStart > 0 && sigStop < 0)
                 {
-                    if (sasTokenArray[i - 1] != '&' && sasTokenArray[i - 1] == ' ')
+                    if (sasTokenArray[i - 1] == '&' || sasTokenArray[i - 1] == ' ')
                         sigStop = i - 1;
-                    else if (sasTokenArray[i - 1] == '&')
-                        sigStop = i - 2;
                     else
                         srStart = -1;
                 }
+                else if (sknStart > 0 && sknStop < 0)
+                {
+                    if (sasTokenArray[i - 1] == '&' || sasTokenArray[i - 1] == ' ')
+                        sknStop = i - 1;
+                    else
+                        srStart = -1;
+                }
+                continue;
             }
-            else if (sasTokenArray[i] == 's' && sasTokenArray[i + 1] == 'i' && sasTokenArray[i + 2] == 'g' && sasTokenArray[i + 3] == '=') // Look for sig=
+            if (sasTokenArray[i] == 's' && sasTokenArray[i + 1] == 'i' && sasTokenArray[i + 2] == 'g' && sasTokenArray[i + 3] == '=') // Look for sig=
             {
                 sigStart = i + 4;
                 if (srStart > 0 && srStop < 0)
                 {
-                    if (sasTokenArray[i - 1] != '&' && sasTokenArray[i - 1] == ' ')
+                    if (sasTokenArray[i - 1] == '&' || sasTokenArray[i - 1] == ' ')
                         srStop = i - 1;
-                    else if (sasTokenArray[i - 1] == '&')
-                        srStop = i - 2;
                     else
                         sigStart = -1;
                 }
                 else if (seStart > 0 && seStop < 0)
                 {
-                    if (sasTokenArray[i - 1] != '&' && sasTokenArray[i - 1] == ' ')
+                    if (sasTokenArray[i - 1] == '&' || sasTokenArray[i - 1] == ' ')
                         seStop = i - 1;
-                    else if (sasTokenArray[i - 1] == '&')
-                        seStop = i - 2;
                     else
                         sigStart = -1;
                 }
+                else if (sknStart > 0 && sknStop < 0)
+                {
+                    if (sasTokenArray[i - 1] == '&' || sasTokenArray[i - 1] == ' ')
+                        sknStart = i - 1;
+                    else
+                        sigStart = -1;
+                }
+                continue;
+            }
+            if (sasTokenArray[i] == 's' && sasTokenArray[i + 1] == 'k' && sasTokenArray[i + 2] == 'n' && sasTokenArray[i + 3] == '=') // Look for skn=
+            {
+                sknStart = i + 4;
+                if (srStart > 0 && srStop < 0)
+                {
+                    if (sasTokenArray[i - 1] == '&' || sasTokenArray[i - 1] == ' ')
+                        srStop = i - 1;
+                    else
+                        sknStart = -1;
+                }
+                else if (seStart > 0 && seStop < 0)
+                {
+                    if (sasTokenArray[i - 1] == '&' || sasTokenArray[i - 1] == ' ')
+                        seStop = i - 1;
+                    else
+                        sknStart = -1;
+                }
+                else if (sigStart > 0 && sigStop < 0)
+                {
+                    if (sasTokenArray[i - 1] == '&' || sasTokenArray[i - 1] == ' ')
+                        sigStop = i - 1;
+                    else
+                        sknStart = -1;
+                }
+                continue;
             }
         }
-
         /*Codes_SRS_SASTOKEN_25_027: [**If SASTOKEN does not obey the SASToken format then SASToken_Validate shall return false.**]***/
         /*Codes_SRS_SASTOKEN_25_028: [**SASToken_validate shall check for the presence of sr, se and sig from the token and return false if not found**]***/
         if (seStart < 0 || srStart < 0 || sigStart < 0)
@@ -143,16 +179,21 @@ bool SASToken_Validate(STRING_HANDLE sasToken)
             {
                 sigStop = tokenLength;
             }
+            else if (sknStart > 0 && sknStop < 0)
+            {
+                sknStop = tokenLength;
+            }
 
             if ((seStop <= seStart) ||
                 (srStop <= srStart) ||
-                (sigStop <= sigStart))
+                (sigStop <= sigStart) ||
+                (sknStart > 0 && sknStop <= sknStart))
             {
                 result = false;
             }
             else
             {
-                char* expiryASCII = (char*)malloc(seStop - seStart + 1);
+                char* expiryASCII = malloc(seStop - seStart + 1);
                 /*Codes_SRS_SASTOKEN_25_031: [**If malloc fails during validation then SASToken_Validate shall return false.**]***/
                 if (expiryASCII == NULL)
                 {
@@ -161,18 +202,12 @@ bool SASToken_Validate(STRING_HANDLE sasToken)
                 else
                 {
                     double expiry;
-                    // Add the Null terminator here
-                    memset(expiryASCII, 0, seStop - seStart + 1);
                     for (i = seStart; i < seStop; i++)
                     {
-                        // The se contains the expiration values, if a & token is encountered then 
-                        // the se field is complete.
-                        if (sasTokenArray[i] == '&')
-                        {
-                            break;
-                        }
                         expiryASCII[i - seStart] = sasTokenArray[i];
                     }
+                    expiryASCII[seStop - seStart] = '\0';
+
                     expiry = getExpiryValue(expiryASCII);
                     /*Codes_SRS_SASTOKEN_25_029: [**SASToken_validate shall check for expiry time from token and if token has expired then would return false **]***/
                     if (expiry <= 0)
@@ -271,7 +306,7 @@ static STRING_HANDLE construct_sas_token(const char* key, const char* scope, con
                     /*Codes_SRS_SASTOKEN_06_022: [The string "&skn=" is appended to result.]*/
                     /*Codes_SRS_SASTOKEN_06_023: [The argument keyName is appended to result.]*/
                     if ((HMACSHA256_ComputeHash(outBuf, outLen, inBuf, inLen, hash) != HMACSHA256_OK) ||
-                        ((base64Signature = Base64_Encoder(hash)) == NULL) ||
+                        ((base64Signature = Base64_Encode(hash)) == NULL) ||
                         ((urlEncodedSignature = URL_Encode(base64Signature)) == NULL) ||
                         (STRING_copy(result, "SharedAccessSignature sr=") != 0) ||
                         (STRING_concat(result, scope) != 0) ||
